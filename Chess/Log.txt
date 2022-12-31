@@ -1,0 +1,1 @@
+..\Window.cpp(initSDL,260) [INFO]: No joysticks connected!
