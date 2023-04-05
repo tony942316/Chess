@@ -2,11 +2,11 @@
 
 #include <iostream>
 
-pul::Window Chess::s_Window = { "Chess", 1200, 1000 };
+pul::Window Chess::s_Window = { "Chess", 1800, 1200 };
 
 void Chess::play()
 {
-	ChessRenderer::init(s_Window.getRenderer());
+	ChessRenderer::init(s_Window);
 
 	s_Window.setEventFunction(handleEvent);
 	s_Window.setUpdateFunction(update);
@@ -17,7 +17,7 @@ void Chess::play()
 
 void Chess::handleEvent(const SDL_Event& e)
 {
-	e;
+	ChessRenderer::handleEvent(e);
 }
 
 void Chess::update()

@@ -14,11 +14,13 @@ public:
 	ChessRenderer& operator= (ChessRenderer&& other) = delete;
 	~ChessRenderer() = delete;
 
-	static void init(SDL_Renderer* renderer);
+	static void init(pul::Window& window);
+
+	static void handleEvent(const SDL_Event& e);
 	static void render();
 
+	static void setBoard(const Board& board);
+
 private:
-	static Board s_Board;
-	static pul::Entity s_WhiteSquare;
-	static pul::Entity s_BlackSquare;
+
 };

@@ -26,6 +26,9 @@ namespace pul
 		SDL_Renderer* getRenderer();
 		std::string getFPSInfo();
 
+		int getWidth() const;
+		int getHeight() const;
+
 	private:
 		void printSDLError() const;
 		void printError(std::string_view msg = "") const;
