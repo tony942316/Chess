@@ -36,7 +36,7 @@ namespace pul
 		std::string m_Name;
 		int m_Width, m_Height;
 		unsigned long long m_FrameCount;
-		double m_LastFrameTime;
+		double m_LastFrameTime, m_LongestFrame, m_ShortestFrame;
 
 		std::function<void(const SDL_Event&)> m_EventFunction;
 		std::function<void(void)> m_UpdateFunction, m_RenderFunction;

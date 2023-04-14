@@ -1,248 +1,235 @@
 #include "ChessRenderer.hpp"
 
+#include <string_view>
+
 #include <array>
+#include <unordered_map>
 
-static std::array<pul::Entity*, 64ULL> arr;
-static eqx::Point<int> s_HeldPiece = { -1, -1 };
+#include "Board.hpp"
 
-static double s_Scale = 125.0;
+static constexpr double c_Scale = 125.0;
 static eqx::Rectangle<double> s_Location;
+static SDL_Renderer* s_Renderer;
 
-static pul::Entity s_WhiteSquare;
-static pul::Entity s_BlackSquare;
-
-static pul::Entity s_BlackRook;
-static pul::Entity s_BlackKnight;
-static pul::Entity s_BlackBishop;
-static pul::Entity s_BlackQueen;
-static pul::Entity s_BlackKing;
-static pul::Entity s_BlackPawn;
-static pul::Entity s_WhiteRook;
-static pul::Entity s_WhiteKnight;
-static pul::Entity s_WhiteBishop;
-static pul::Entity s_WhiteQueen;
-static pul::Entity s_WhiteKing;
-static pul::Entity s_WhitePawn;
+static pul::Texture s_WhiteSquareTexture;
+static pul::Texture s_BlackSquareTexture;
+static pul::Texture s_FrameTexture;
+static std::unordered_map<Piece, pul::Texture> s_PieceTextures;
 
 static pul::Entity s_Frame;
+static std::unordered_map<int, pul::Entity> s_Pieces;
+static std::array<pul::Entity, 64ULL> s_Squares;
+static pul::Entity* s_HeldPiece = nullptr;
 
-static Board s_Board;
+bool inBounds(eqx::Point<int> point)
+{
+	return point.x >= 0 && point.x <= 7 && point.y >= 0 && point.y <= 7;
+}
+
+eqx::Point<int> windowToBoardSpace(eqx::Point<double> point)
+{
+	return {
+		static_cast<int>(std::floor((point.x - s_Location.x) / c_Scale)),
+		static_cast<int>(std::floor((point.y - s_Location.y) / c_Scale))
+	};
+}
+
+eqx::Point<double> boardToWindowSpace(eqx::Point<int> coord)
+{
+	return {
+		s_Location.x + coord.x * c_Scale,
+		s_Location.y + coord.y * c_Scale
+	};
+}
+
+int coordToIndex(eqx::Point<int> coord)
+{
+	return coord.x + coord.y * 8;
+}
 
 void ChessRenderer::init(pul::Window& window)
 {
-	s_Location.x = (window.getWidth() - s_Scale * 8.0) / 2.0;
-	s_Location.y = (window.getHeight() - s_Scale * 8.0) / 2.0;
-	s_Location.w = s_Scale * 8.0;
-	s_Location.h = s_Scale * 8.0;
+	s_Location.x = (window.getWidth() - c_Scale * 8.0) / 2.0;
+	s_Location.y = (window.getHeight() - c_Scale * 8.0) / 2.0;
+	s_Location.w = c_Scale * 8.0;
+	s_Location.h = c_Scale * 8.0;
 
-	s_WhiteSquare.setTexture(window.getRenderer(), "assets/WhiteSquare.png");
-	s_WhiteSquare.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_BlackSquare.setTexture(window.getRenderer(), "assets/BlackSquare.png");
-	s_BlackSquare.setRect({ 0.0, 0.0, s_Scale, s_Scale });
+	s_Renderer = window.getRenderer();
 
-	s_BlackRook.setTexture(window.getRenderer(), "assets/BlackRook.png");
-	s_BlackRook.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_BlackKnight.setTexture(window.getRenderer(), "assets/BlackKnight.png");
-	s_BlackKnight.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_BlackBishop.setTexture(window.getRenderer(), "assets/BlackBishop.png");
-	s_BlackBishop.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_BlackQueen.setTexture(window.getRenderer(), "assets/BlackQueen.png");
-	s_BlackQueen.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_BlackKing.setTexture(window.getRenderer(), "assets/BlackKing.png");
-	s_BlackKing.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_BlackPawn.setTexture(window.getRenderer(), "assets/BlackPawn.png");
-	s_BlackPawn.setRect({ 0.0, 0.0, s_Scale, s_Scale });
+	s_WhiteSquareTexture = 
+		pul::Texture(s_Renderer, "assets/WhiteSquare.png");
+	s_BlackSquareTexture =
+		pul::Texture(s_Renderer, "assets/BlackSquare.png");
+	s_FrameTexture =
+		pul::Texture(s_Renderer, "assets/Frame.png");
 
-	s_WhiteRook.setTexture(window.getRenderer(), "assets/WhiteRook.png");
-	s_WhiteRook.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_WhiteKnight.setTexture(window.getRenderer(), "assets/WhiteKnight.png");
-	s_WhiteKnight.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_WhiteBishop.setTexture(window.getRenderer(), "assets/WhiteBishop.png");
-	s_WhiteBishop.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_WhiteQueen.setTexture(window.getRenderer(), "assets/WhiteQueen.png");
-	s_WhiteQueen.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_WhiteKing.setTexture(window.getRenderer(), "assets/WhiteKing.png");
-	s_WhiteKing.setRect({ 0.0, 0.0, s_Scale, s_Scale });
-	s_WhitePawn.setTexture(window.getRenderer(), "assets/WhitePawn.png");
-	s_WhitePawn.setRect({ 0.0, 0.0, s_Scale, s_Scale });
+	s_PieceTextures.emplace(Pieces::Black::Rook,
+		pul::Texture(s_Renderer, "assets/BlackRook.png"));
+	s_PieceTextures.emplace(Pieces::Black::Knight,
+		pul::Texture(s_Renderer, "assets/BlackKnight.png"));
+	s_PieceTextures.emplace(Pieces::Black::Bishop,
+		pul::Texture(s_Renderer, "assets/BlackBishop.png"));
+	s_PieceTextures.emplace(Pieces::Black::Queen,
+		pul::Texture(s_Renderer, "assets/BlackQueen.png"));
+	s_PieceTextures.emplace(Pieces::Black::King,
+		pul::Texture(s_Renderer, "assets/BlackKing.png"));
+	s_PieceTextures.emplace(Pieces::Black::Pawn,
+		pul::Texture(s_Renderer, "assets/BlackPawn.png"));
 
-	s_Frame.setTexture(window.getRenderer(), "assets/Frame.png");
-	s_Frame.setRect({ 0.0, 0.0, s_Scale, s_Scale });
+	s_PieceTextures.emplace(Pieces::White::Rook,
+		pul::Texture(s_Renderer, "assets/WhiteRook.png"));
+	s_PieceTextures.emplace(Pieces::White::Knight,
+		pul::Texture(s_Renderer, "assets/WhiteKnight.png"));
+	s_PieceTextures.emplace(Pieces::White::Bishop,
+		pul::Texture(s_Renderer, "assets/WhiteBishop.png"));
+	s_PieceTextures.emplace(Pieces::White::Queen,
+		pul::Texture(s_Renderer, "assets/WhiteQueen.png"));
+	s_PieceTextures.emplace(Pieces::White::King,
+		pul::Texture(s_Renderer, "assets/WhiteKing.png"));
+	s_PieceTextures.emplace(Pieces::White::Pawn,
+		pul::Texture(s_Renderer, "assets/WhitePawn.png"));
+
+	s_Frame = 
+		pul::Entity(s_FrameTexture, { 0.0, 0.0, c_Scale, c_Scale }, 900.0);
+
+	auto currentLocation = eqx::Rectangle<double>();
+	auto i = 0ULL;
+	for (int y = 0; y < 8; y++)
+	{
+		for (int x = 0; x < 8; x++)
+		{
+			currentLocation = {
+				x * c_Scale + s_Location.x,
+				y * c_Scale + s_Location.y,
+				c_Scale,
+				c_Scale
+			};
+
+			s_Squares[i].setDrawBox(currentLocation);
+			if (x % 2 == y % 2)
+			{
+				s_Squares[i].setTexture(s_WhiteSquareTexture);
+			}
+			else
+			{
+				s_Squares[i].setTexture(s_BlackSquareTexture);
+			}
+			i++;
+		}
+	}
 
 	setBoard(Board());
 }
 
-eqx::Point<double> boardToWindowPoint(const eqx::Point<int>& p)
+void ChessRenderer::setBoard(const Board& board)
 {
-	return { 
-		s_Location.x + p.x * s_Scale, 
-		s_Location.y + p.y * s_Scale };
-}
+	s_Pieces.clear();
 
-eqx::Point<int> windowToBoardPoint(const eqx::Point<double>& p)
-{
-	eqx::Point<int> result = {
-		static_cast<int>((p.x - s_Location.x) / s_Scale),
-		static_cast<int>((p.y - s_Location.y) / s_Scale) };
-	if (result.x == 8)
+	auto piece = Piece();
+	auto location = eqx::Rectangle<double>();
+	auto entity = pul::Entity();
+	for (int i = 0; i < board.getBoard().size(); i++)
 	{
-		result.x--;
-	}
-	if (result.y == 8)
-	{
-		result.y--;
-	}
-	return result;
-}
+		piece = board.getBoard().at(i);
+		location = eqx::Rectangle<double>({
+			s_Location.x + c_Scale * (i % 8),
+			s_Location.y + c_Scale * (i / 8),
+			c_Scale,
+			c_Scale
+		});
 
-pul::Entity* getEntity(char c)
-{
-	switch (c)
-	{
-	case 'r':
-		return &s_BlackRook;
-		break;
-	case 'n':
-		return &s_BlackKnight;
-		break;
-	case 'b':
-		return &s_BlackBishop;
-		break;
-	case 'q':
-		return &s_BlackQueen;
-		break;
-	case 'k':
-		return &s_BlackKing;
-		break;
-	case 'p':
-		return &s_BlackPawn;
-		break;
-	case 'R':
-		return &s_WhiteRook;
-		break;
-	case 'N':
-		return &s_WhiteKnight;
-		break;
-	case 'B':
-		return &s_WhiteBishop;
-		break;
-	case 'Q':
-		return &s_WhiteQueen;
-		break;
-	case 'K':
-		return &s_WhiteKing;
-		break;
-	case 'P':
-		return &s_WhitePawn;
-		break;
-	case '-':
-		return nullptr;
-		break;
-	default:
-		break;
+		if (piece.getType() != Piece::Type::None)
+		{
+			entity = 
+				pul::Entity(s_PieceTextures.at(piece), location, 2'000.0);
+			entity.setRotationSpeed(300.0);
+			entity.setRotationPoint({ c_Scale / 2.0, c_Scale / 2.0 });
+			s_Pieces.emplace(i, entity);
+		}
 	}
-
-	return nullptr;
 }
 
 void ChessRenderer::handleEvent(const SDL_Event& e)
 {
 	if (e.type == SDL_MOUSEBUTTONDOWN)
 	{
-		if (e.button.button == SDL_BUTTON_LEFT)
+		auto coord = windowToBoardSpace(pul::Mouse::getCurrentLocation());
+		auto index = coordToIndex(coord);
+		if (e.button.button == SDL_BUTTON_LEFT &&
+			inBounds(coord) &&
+			s_Pieces.contains(index))
 		{
-			const auto& clickLocation = pul::Mouse::getLeftClickDownLocation();
-			if (eqx::intersect(s_Location, clickLocation))
-			{
-				s_HeldPiece = windowToBoardPoint(clickLocation);
-			}
+			s_HeldPiece = &s_Pieces.at(index);
 		}
 	}
 	else if (e.type == SDL_MOUSEBUTTONUP)
 	{
 		if (e.button.button == SDL_BUTTON_LEFT)
 		{
-			s_HeldPiece = { -1, -1 };
+			auto returnLocation = boardToWindowSpace(windowToBoardSpace(
+				pul::Mouse::getLeftClickDownLocation()));
+			s_HeldPiece->setTarget(returnLocation);
+			s_HeldPiece->setRotationTarget(0.0);
+			s_HeldPiece = nullptr;
 		}
 	}
+}
+
+void ChessRenderer::update(double dt)
+{
+	auto location = boardToWindowSpace(windowToBoardSpace(
+		pul::Mouse::getCurrentLocation()));
+	auto mouseIndex = 
+		coordToIndex(windowToBoardSpace(pul::Mouse::getCurrentLocation()));
+
+	if (s_HeldPiece == nullptr &&
+		inBounds(windowToBoardSpace(pul::Mouse::getCurrentLocation())) &&
+		s_Pieces.contains(mouseIndex))
+	{
+		s_Frame.setLocation(location);
+	}
+	else if (s_HeldPiece == nullptr)
+	{
+		s_Frame.setLocation({ -c_Scale, -c_Scale });
+	}
+
+	if (s_HeldPiece != nullptr)
+	{
+		auto trackLocation = pul::Mouse::getCurrentLocation() -
+			eqx::Point<double>({ c_Scale / 2.0, c_Scale / 2.0 });
+		s_HeldPiece->setTarget(trackLocation);
+		if (!s_HeldPiece->targetReached())
+		{
+			s_HeldPiece->setRotationTarget(
+				eqx::getSign(s_HeldPiece->getDirection().x) * 30.0);
+		}
+		else
+		{
+			s_HeldPiece->setRotationTarget(0.0);
+		}
+	}
+
+	std::ranges::for_each(s_Pieces,
+		[dt = dt](auto& valPair)
+		{
+			valPair.second.move(dt);
+			valPair.second.rotate(dt);
+		});
 }
 
 void ChessRenderer::render()
 {
-	auto iter = 0ULL;
-	auto windowPoint = eqx::Point<double>();
-	for (int y = 0; y < 8; y++)
-	{
-		for (int x = 0; x < 8; x++)
+	std::ranges::for_each(s_Squares,
+		[](const auto& val)
 		{
-			windowPoint = boardToWindowPoint({ x, y });
-			if (x % 2 == y % 2)
-			{
-				s_WhiteSquare.setLocation(windowPoint);
-				s_WhiteSquare.render();
-			}
-			else
-			{
-				s_BlackSquare.setLocation(windowPoint);
-				s_BlackSquare.render();
-			}
+			val.render();
+		});
 
-			if (arr[iter] != nullptr &&
-				eqx::Point<int>({ x, y }) != s_HeldPiece)
-			{
-				arr[iter]->setLocation(windowPoint);
-				arr[iter]->render();
-			}
-
-			iter++;
-		}
-	}
-
-	const auto& mouseLocation = pul::Mouse::getCurrentLocation();
-	if (s_HeldPiece != eqx::Point<int>({ -1, -1 }))
-	{
-		s_Frame.setLocation(boardToWindowPoint(s_HeldPiece));
-		s_Frame.render();
-	}
-	else
-	{
-		auto boardPoint = eqx::Point<int>();
-		if (eqx::intersect(s_Location, mouseLocation))
+	std::ranges::for_each(s_Pieces,
+		[](const auto& valPair)
 		{
-			windowPoint = boardToWindowPoint(
-				windowToBoardPoint(mouseLocation));
-			boardPoint = windowToBoardPoint(windowPoint);
-			if (arr.at(boardPoint.x + boardPoint.y * 8) != nullptr)
-			{
-				s_Frame.setLocation(windowPoint);
-				s_Frame.render();
-			}
-		}
-	}
-	
+			valPair.second.render();
+		});
 
-	if (s_HeldPiece != eqx::Point<int>({ -1, -1 }))
-	{
-		auto* piece = arr.at(s_HeldPiece.x + s_HeldPiece.y * 8);
-		auto pieceLoc = boardToWindowPoint(s_HeldPiece);
-		auto dx = pul::Mouse::getLeftClickDownLocation().x - pieceLoc.x;
-		auto dy = pul::Mouse::getLeftClickDownLocation().y - pieceLoc.y;
-		auto drawLoc = eqx::Point<double>({
-			mouseLocation.x - dx,
-			mouseLocation.y - dy });
-		piece->setLocation(drawLoc);
-		piece->render();
-	}
-}
-
-void ChessRenderer::setBoard(const Board& board)
-{
-	s_Board = board;
-
-	auto* piece = static_cast<pul::Entity*>(nullptr);
-	for (std::size_t i = 0ULL; i < arr.size(); i++)
-	{
-		piece = getEntity(s_Board.getBoard().at(i));
-		arr[i] = piece;
-	}
+	s_Frame.render();
 }

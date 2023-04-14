@@ -226,7 +226,8 @@ namespace eqx
 			std::swap(x1, x2);
 		}
 
-		eqx::runtimeAssert(!willOverflowSubtraction(x1, x2), "Arithmetic Overflow!");
+		eqx::runtimeAssert(!willOverflowSubtraction(x1, x2), 
+			"Arithmetic Overflow!");
 
 		return static_cast<T>(std::fabs(x1 - x2));
 	}

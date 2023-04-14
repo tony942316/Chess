@@ -4,23 +4,13 @@
 
 #include "Board.hpp"
 
-class ChessRenderer
+namespace ChessRenderer
 {
-public:
-	ChessRenderer() = delete;
-	ChessRenderer(const ChessRenderer& other) = delete;
-	ChessRenderer(ChessRenderer&& other) = delete;
-	ChessRenderer& operator= (const ChessRenderer& other) = delete;
-	ChessRenderer& operator= (ChessRenderer&& other) = delete;
-	~ChessRenderer() = delete;
+	void init(pul::Window& window);
 
-	static void init(pul::Window& window);
+	void handleEvent(const SDL_Event& e);
+	void update(double dt);
+	void render();
 
-	static void handleEvent(const SDL_Event& e);
-	static void render();
-
-	static void setBoard(const Board& board);
-
-private:
-
-};
+	void setBoard(const Board& board);
+}

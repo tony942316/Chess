@@ -28,6 +28,8 @@ void Chess::update()
 		timer.start();
 		std::cout << s_Window.getFPSInfo() << std::endl;
 	}
+
+	ChessRenderer::update(s_Window.getDeltaTime());
 }
 
 void Chess::render()

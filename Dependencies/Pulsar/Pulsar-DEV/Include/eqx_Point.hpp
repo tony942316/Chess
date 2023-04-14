@@ -255,9 +255,10 @@ namespace eqx
 		constexpr auto origin = Point<T>();
 
 		auto dist = eqx::distance(origin, point);
-		eqx::runtimeAssert(dist != eqx::zero<T>, "dist Was 0!");
 
-		auto result = Point<T>(point.x / dist, point.y / dist);
+		auto result = dist != eqx::zero<T> ? 
+			Point<T>(point.x / dist, point.y / dist) :
+			Point<T>();
 		return result;
 	}
 

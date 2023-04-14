@@ -209,15 +209,19 @@
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Analyzer.cpp" />
     <ClCompile Include="src\Board.cpp" />
     <ClCompile Include="src\Chess.cpp" />
     <ClCompile Include="src\ChessRenderer.cpp" />
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\Piece.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Headers\Analyzer.hpp" />
     <ClInclude Include="src\Headers\Board.hpp" />
     <ClInclude Include="src\Headers\Chess.hpp" />
     <ClInclude Include="src\Headers\ChessRenderer.hpp" />
+    <ClInclude Include="src\Headers\Piece.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

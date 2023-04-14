@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string_view>
-
 #include <EquinoxSTD.hpp>
 
 #include "pul_Texture.hpp"
@@ -11,32 +9,54 @@ namespace pul
 	class Entity
 	{
 	public:
-		Entity();
-		Entity(SDL_Renderer* renderer, std::string_view filePath,
-			eqx::Rectangle<double> drawBox, double speed);
+		Entity() noexcept;
+		Entity(Texture& texture, const eqx::Rectangle<double>& location,
+			double speed) noexcept;
 
-		void render() const;
-		const eqx::Rectangle<double>& getLocation() const;
-		const Texture& getTexture() const;
-		double getSpeed() const;
-		eqx::Point<double> getDirection() const;
-		bool targetReached() const;
-		bool targetReached(eqx::Point<double> point) const;
+		void render() const noexcept;
 
-		void setTexture(SDL_Renderer* renderer, std::string_view filePath);
-		void setLocation(eqx::Point<double> point);
-		void setRect(eqx::Rectangle<double> rect);
-		void setSpeed(double speed);
-		Texture& editTexture();
-		eqx::Rectangle<double>& editRect();
-		void move(double dt);
-		void setTarget(eqx::Point<double> point);
-		void setDirection(eqx::Point<double> point);
+		[[nodiscard]] bool targetReached() const noexcept;
+		[[nodiscard]] bool rotationTargetReached() const noexcept;
+		void move(double dt) noexcept;
+		void rotate(double dt) noexcept;
+
+		void setRotationDirection(int direction) noexcept;
+		void setSpeed(double speed) noexcept;
+		void setRotationSpeed(double speed) noexcept;
+		void setRotationTarget(double target) noexcept;
+		void setDirection(const eqx::Point<double>& direction) noexcept;
+		void setTarget(const eqx::Point<double>& target) noexcept;
+		void setRotationPoint(const eqx::Point<double>& point) noexcept;
+		void setTexture(Texture& texture) noexcept;
+		void setLocation(const eqx::Point<double>& point) noexcept;
+		void setDrawBox(const eqx::Rectangle<double>& rect) noexcept;
+		void setColor(const Texture::Color& rgb) noexcept;
+
+		[[nodiscard]] eqx::Rectangle<double>& editDrawBox() noexcept;
+
+		[[nodiscard]] int getRotationDirection() const noexcept;
+		[[nodiscard]] double getSpeed() const noexcept;
+		[[nodiscard]] double getRotationSpeed() const noexcept;
+		[[nodiscard]] double getRotationTarget() const noexcept;
+		[[nodiscard]] const eqx::Point<double>& getDirection() const noexcept;
+		[[nodiscard]] const eqx::Point<double>& getTarget() const noexcept;
+		[[nodiscard]] const eqx::Point<double>& 
+			getRotationPoint() const noexcept;
+		[[nodiscard]] eqx::Point<double> getLocation() const noexcept;
+		[[nodiscard]] const eqx::Rectangle<double>& 
+			getDrawBox() const noexcept;
+		[[nodiscard]] double getAngle() const noexcept;
+		[[nodiscard]] const Texture::Color& getColor() const noexcept;
+
+		static constexpr inline auto c_MaxSpeed = 1'000'000.0;
 
 	private:
-		Texture m_Texture;
-		eqx::Rectangle<double> m_DrawBox;
+		int m_RotationDirection;
+		double m_Speed, m_RotationSpeed, m_RotationTarget;
+
 		eqx::Point<double> m_Direction, m_Target;
-		double m_Speed;
+
+		Texture* m_Texture;
+		Texture::Config m_RenderConfiguration;
 	};
 }
