@@ -20,6 +20,7 @@
 #include <string>
 #include <cmath>
 #include <cerrno>
+#include <functional>
 
 #include "eqx_Misc.hpp"
 #include "eqx_Mathematics.hpp"
@@ -37,7 +38,7 @@ namespace eqx
 		/**
 		 * @brief Initialized With Zeros i.e. ((T)0, (T)0)
 		 */
-		constexpr Point() noexcept
+		explicit constexpr Point() noexcept
 			:
 			Point(eqx::zero<T>, eqx::zero<T>)
 		{
@@ -49,7 +50,7 @@ namespace eqx
 		 * @param x The x Value
 		 * @param y The y Value
 		 */
-		constexpr Point(T x, T y) noexcept
+		explicit constexpr Point(T x, T y) noexcept
 			:
 			x(x),
 			y(y)
@@ -72,8 +73,8 @@ namespace eqx
 		 * 
 		 * @returns Resulting Point
 		 */
-		[[nodiscard]] constexpr 
-			Point<T> operator+ (const Point<T>& other) const noexcept
+		[[nodiscard]] constexpr Point<T> 
+			operator+ (const Point<T>& other) const noexcept
 		{
 			return Point<T>(x + other.x, y + other.y);
 		}
@@ -85,8 +86,8 @@ namespace eqx
 		 * 
 		 * @returns Resulting Point
 		 */
-		[[nodiscard]] constexpr 
-			Point<T> operator- (const Point<T>& other) const noexcept
+		[[nodiscard]] constexpr Point<T> 
+			operator- (const Point<T>& other) const noexcept
 		{
 			return Point<T>(x - other.x, y - other.y);
 		}
@@ -122,21 +123,21 @@ namespace eqx
 		 * 
 		 * @returns true If Points Are Equivalent
 		 */
-		[[nodiscard]] constexpr 
-			bool operator== (const Point<T>& other) const noexcept
+		[[nodiscard]] constexpr bool 
+			operator== (const Point<T>& other) const noexcept
 		{
 			return equals(*this, other);
 		}
 
 		/**
-		 * @brief !eqx::equals(x, other.x), !eqx::equals(y, other.y)
+		 * @brief !(*this == other)
 		 *
 		 * @param other The Same Type Point We Compare Against
 		 *
-		 * @returns true If Points Are Equivalent
+		 * @returns true If Points Are Not Equivalent
 		 */
-		[[nodiscard]] constexpr 
-			bool operator!= (const Point<T>& other) const noexcept
+		[[nodiscard]] constexpr bool 
+			operator!= (const Point<T>& other) const noexcept
 		{
 			return !(*this == other);
 		}
@@ -203,9 +204,8 @@ namespace eqx
 	 * @returns true If Points Are Equivalent
 	 */
 	template <std::floating_point T>
-	[[nodiscard]] constexpr 
-		bool equals(const Point<T>& point1, const Point<T>& point2,
-			double error = 0.001) noexcept
+	[[nodiscard]] constexpr bool equals(const Point<T>& point1, 
+		const Point<T>& point2, double error = 0.001) noexcept
 	{
 		return equals(point1.x, point2.x, error) && 
 			equals(point1.y, point2.y, error);
@@ -220,8 +220,8 @@ namespace eqx
 	 * @returns true If Points Are Equivalent
 	 */
 	template <eqx::integer T>
-	[[nodiscard]] constexpr
-		bool equals(const Point<T>& point1, const Point<T>& point2) noexcept
+	[[nodiscard]] constexpr bool equals(const Point<T>& point1, 
+		const Point<T>& point2) noexcept
 	{
 		return equals(point1.x, point2.x) && equals(point1.y, point2.y);
 	}
@@ -235,8 +235,8 @@ namespace eqx
 	 * @returns Distance Between The Points
 	 */
 	template <typename T>
-	[[nodiscard]] 
-		T distance(const Point<T>& point1, const Point<T>& point2) noexcept
+	[[nodiscard]] T distance(const Point<T>& point1, 
+		const Point<T>& point2) noexcept
 	{
 		return point1.distanceTo(point2);
 	}
@@ -284,3 +284,13 @@ namespace eqx
 		return correctValue;
 	}
 }
+
+template <typename T>
+struct std::hash<eqx::Point<T>>
+{
+	[[nodiscard]] std::size_t 
+		operator() (const eqx::Point<T>& point) const noexcept
+	{
+		return std::hash<T>()(point.x) ^ std::hash<T>()(point.y);
+	}
+};

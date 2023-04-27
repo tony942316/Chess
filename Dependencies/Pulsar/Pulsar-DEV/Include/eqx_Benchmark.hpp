@@ -32,28 +32,51 @@ namespace eqx
 		 * 
 		 * @param function The Function To Be Tested
 		 */
-		Benchmark(std::function<void(void)> function);
+		explicit Benchmark(std::function<void(void)> function) noexcept
+			:
+			m_Function(function),
+			m_Bench(std::chrono::nanoseconds())
+		{
+		}
 
 		/**
 		 * Trivial Move And Copy Operation
 		 */
-		Benchmark(const Benchmark& other) = default;
-		Benchmark(Benchmark&& other) = default;
-		Benchmark& operator= (const Benchmark& other) = default;
-		Benchmark& operator= (Benchmark&& other) = default;
+		Benchmark(const Benchmark&) = default;
+		Benchmark(Benchmark&&) = default;
+		Benchmark& operator= (const Benchmark&) = default;
+		Benchmark& operator= (Benchmark&&) = default;
 		~Benchmark() = default;
 
 		/**
 		 * @brief Time How Long It Takes To Run The Function
 		 */
-		void bench() noexcept(noexcept(m_Function()));
+		void bench() noexcept(noexcept(m_Function()))
+		{
+			StopWatch timer;
+			timer.start();
+			m_Function();
+			timer.stop();
+			m_Bench = timer.getDuration<std::chrono::nanoseconds>();
+		}
 
 		/**
 		 * @brief Time How Long It Takes To Run The Function On Average
 		 * 
 		 * @param runs The Number Of Times The Function Is Run
 		 */
-		void avgBench(int runs = 1'000) noexcept(noexcept(m_Function()));
+		void avgBench(int runs = 1'000) noexcept(noexcept(m_Function()))
+		{
+			StopWatch timer;
+			timer.start();
+			for (int i = 0; i < runs; i++)
+			{
+				bench();
+			}
+			timer.stop();
+			m_Bench = static_cast<std::chrono::nanoseconds>(
+				timer.getTime<std::chrono::nanoseconds>() / runs);
+		}
 
 		/**
 		 * @brief Build A String Representing The Time It Took To Run

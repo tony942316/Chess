@@ -38,7 +38,7 @@ namespace eqx
 		/**
 		 * @brief Initialized With Zeros i.e. ((T)0, ...)
 		 */
-		constexpr Rectangle() noexcept
+		explicit constexpr Rectangle() noexcept
 			:
 			Rectangle(eqx::zero<T>, eqx::zero<T>, eqx::zero<T>, eqx::zero<T>)
 		{
@@ -52,7 +52,7 @@ namespace eqx
 		 * @param w The Width
 		 * @param h The Height
 		 */
-		constexpr Rectangle(T x, T y, T w, T h) noexcept
+		explicit constexpr Rectangle(T x, T y, T w, T h) noexcept
 			:
 			x(x),
 			y(y),
@@ -69,6 +69,34 @@ namespace eqx
 		Rectangle& operator= (const Rectangle& other) = default;
 		Rectangle& operator= (Rectangle&& other) = default;
 		~Rectangle() = default;
+
+		/**
+		 * @brief eqx::equals(x, other.x) && eqx::equals(y, other.y) &&
+		 *		eqx::equals(w, other.w) && eqx::equals(h, other.h)
+		 *
+		 * @param other The Same Type Rectangle We Compare Against
+		 *
+		 * @returns true If Rectanges Are Equivalent
+		 */
+		[[nodiscard]] constexpr bool 
+			operator== (const eqx::Rectangle<T>& other) const noexcept
+		{
+			return equals(x, other.x) && equals(y, other.y) &&
+				equals(w, other.w) && equals(h, other.h);
+		}
+
+		/**
+		 * @brief !(*this == other)
+		 *
+		 * @param other The Same Type Rectangle We Compare Against
+		 *
+		 * @returns true If Rectangles Are Not Equivalent
+		 */
+		[[nodiscard]] constexpr bool 
+			operator!= (const eqx::Rectangle<T>& other) const noexcept
+		{
+			return !(*this == other);
+		}
 
 		/**
 		 * @brief Create A Point At (X, Y), Note That This Is An
@@ -106,8 +134,8 @@ namespace eqx
 		 * 
 		 * @returns eqx::Point<T> Representing The Bottom Left Point
 		 */
-		[[nodiscard]] constexpr 
-			eqx::Point<T> getBottomLeftPoint() const noexcept
+		[[nodiscard]] constexpr eqx::Point<T> 
+			getBottomLeftPoint() const noexcept
 		{
 			return eqx::Point<T>(x, y + h);
 		}
@@ -117,8 +145,8 @@ namespace eqx
 		 * 
 		 * @returns eqx::Point<T> Representing The Bottom Right Point
 		 */
-		[[nodiscard]] constexpr 
-			eqx::Point<T> getBottomRightPoint() const noexcept
+		[[nodiscard]] constexpr eqx::Point<T> 
+			getBottomRightPoint() const noexcept
 		{
 			return eqx::Point<T>(x + w, y + h);
 		}
@@ -174,7 +202,7 @@ namespace eqx
 	}
 
 	/**
-	 * @brief Determine If A Point Is Contained Inside A Rectangle
+	 * @brief Determine If A Point Is Contained Inside A Rectangle (Inclusive)
 	 * 
 	 * @param rect The Rectangle
 	 * @param point The Point
@@ -199,7 +227,7 @@ namespace eqx
 	}
 
 	/**
-	 * @brief Determine If Two Rectangles Overlap
+	 * @brief Determine If Two Rectangles Overlap (Inclusive)
 	 * 
 	 * @param rect1 The First Rectangle
 	 * @param rect2 The Second Rectangle
@@ -223,3 +251,14 @@ namespace eqx
 		}
 	}
 }
+
+template <typename T>
+struct std::hash<eqx::Rectangle<T>>
+{
+	[[nodiscard]] std::size_t
+		operator() (const eqx::Rectangle<T>& rect) const noexcept
+	{
+		return std::hash<T>()(rect.x) ^ std::hash<T>()(rect.y) ^
+			std::hash<T>()(rect.w) ^ std::hash<T>()(rect.h);
+	}
+};

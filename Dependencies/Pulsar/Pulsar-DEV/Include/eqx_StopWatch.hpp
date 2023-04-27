@@ -42,7 +42,10 @@ namespace eqx
 		/**
 		 * @brief Starts StopWatch On Construction
 		 */
-		StopWatch() noexcept;
+		explicit StopWatch() noexcept
+		{
+			start();
+		}
 
 		/**
 		 * Trivial Move And Copy Operation
@@ -56,12 +59,19 @@ namespace eqx
 		/**
 		 * @brief Set The Start Time Of The StopWatch And Reset The End Time
 		 */
-		void start() noexcept;
+		void start() noexcept
+		{
+			m_StartTime = std::chrono::steady_clock::now();
+			m_EndTime = m_StartTime;
+		}
 
 		/**
 		 * @brief Set The End Time Of The StopWatch
 		 */
-		void stop() noexcept;
+		void stop() noexcept
+		{
+			m_EndTime = std::chrono::steady_clock::now();
+		}
 
 		/**
 		 * @brief Gives The std::chrono::duration<T> Between The Last
@@ -105,7 +115,7 @@ namespace eqx
 		}
 
 	private:
-		std::chrono::time_point<std::chrono::steady_clock> 
-			m_StartTime, m_EndTime;
+		std::chrono::time_point<std::chrono::steady_clock> m_StartTime, 
+			m_EndTime;
 	};
 }

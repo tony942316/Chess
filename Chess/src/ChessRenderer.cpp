@@ -5,7 +5,7 @@
 #include <array>
 #include <unordered_map>
 
-#include "Board.hpp"
+#include "Analyzer.hpp"
 
 static constexpr double c_Scale = 125.0;
 static eqx::Rectangle<double> s_Location;
@@ -21,30 +21,22 @@ static std::unordered_map<int, pul::Entity> s_Pieces;
 static std::array<pul::Entity, 64ULL> s_Squares;
 static pul::Entity* s_HeldPiece = nullptr;
 
-bool inBounds(eqx::Point<int> point)
-{
-	return point.x >= 0 && point.x <= 7 && point.y >= 0 && point.y <= 7;
-}
+static std::array<std::unordered_map<Move, Board>, 64ULL> s_Moves;
+static Board s_Board;
+static std::vector<pul::Entity> s_MoveEntities;
 
-eqx::Point<int> windowToBoardSpace(eqx::Point<double> point)
+eqx::Point<int> windowToBoardSpace(const eqx::Point<double>& point)
 {
-	return {
+	return eqx::Point<int>(
 		static_cast<int>(std::floor((point.x - s_Location.x) / c_Scale)),
-		static_cast<int>(std::floor((point.y - s_Location.y) / c_Scale))
-	};
+		static_cast<int>(std::floor((point.y - s_Location.y) / c_Scale)));
 }
 
-eqx::Point<double> boardToWindowSpace(eqx::Point<int> coord)
+eqx::Point<double> boardToWindowSpace(const eqx::Point<int>& coord)
 {
-	return {
+	return eqx::Point<double>(
 		s_Location.x + coord.x * c_Scale,
-		s_Location.y + coord.y * c_Scale
-	};
-}
-
-int coordToIndex(eqx::Point<int> coord)
-{
-	return coord.x + coord.y * 8;
+		s_Location.y + coord.y * c_Scale);
 }
 
 void ChessRenderer::init(pul::Window& window)
@@ -89,8 +81,8 @@ void ChessRenderer::init(pul::Window& window)
 	s_PieceTextures.emplace(Pieces::White::Pawn,
 		pul::Texture(s_Renderer, "assets/WhitePawn.png"));
 
-	s_Frame = 
-		pul::Entity(s_FrameTexture, { 0.0, 0.0, c_Scale, c_Scale }, 900.0);
+	s_Frame = pul::Entity(s_FrameTexture, 
+		eqx::Rectangle<double>(0.0, 0.0, c_Scale, c_Scale), 900.0);
 
 	auto currentLocation = eqx::Rectangle<double>();
 	auto i = 0ULL;
@@ -98,12 +90,11 @@ void ChessRenderer::init(pul::Window& window)
 	{
 		for (int x = 0; x < 8; x++)
 		{
-			currentLocation = {
+			currentLocation = eqx::Rectangle<double>(
 				x * c_Scale + s_Location.x,
 				y * c_Scale + s_Location.y,
 				c_Scale,
-				c_Scale
-			};
+				c_Scale);
 
 			s_Squares[i].setDrawBox(currentLocation);
 			if (x % 2 == y % 2)
@@ -124,27 +115,35 @@ void ChessRenderer::init(pul::Window& window)
 void ChessRenderer::setBoard(const Board& board)
 {
 	s_Pieces.clear();
+	s_Board = board;
 
 	auto piece = Piece();
 	auto location = eqx::Rectangle<double>();
+	auto destination = eqx::Point<double>();
 	auto entity = pul::Entity();
 	for (int i = 0; i < board.getBoard().size(); i++)
 	{
 		piece = board.getBoard().at(i);
-		location = eqx::Rectangle<double>({
-			s_Location.x + c_Scale * (i % 8),
-			s_Location.y + c_Scale * (i / 8),
+		location = eqx::Rectangle<double>(
+			0.0,
+			0.0,
 			c_Scale,
-			c_Scale
-		});
+			c_Scale);
+		destination = eqx::Point<double>(
+			s_Location.x + c_Scale * (i % 8),
+			s_Location.y + c_Scale * (i / 8));
 
 		if (piece.getType() != Piece::Type::None)
 		{
 			entity = 
 				pul::Entity(s_PieceTextures.at(piece), location, 2'000.0);
+			entity.setTarget(destination);
 			entity.setRotationSpeed(300.0);
-			entity.setRotationPoint({ c_Scale / 2.0, c_Scale / 2.0 });
+			entity.setRotationPoint(eqx::Point<double>(
+				c_Scale / 2.0, c_Scale / 2.0));
 			s_Pieces.emplace(i, entity);
+
+			s_Moves[i] = Analyzer::getAllPermutations(s_Board);
 		}
 	}
 }
@@ -160,17 +159,54 @@ void ChessRenderer::handleEvent(const SDL_Event& e)
 			s_Pieces.contains(index))
 		{
 			s_HeldPiece = &s_Pieces.at(index);
+			std::ranges::for_each(s_Moves.at(index),
+				[](const auto& valPair)
+				{
+					auto location = 
+						boardToWindowSpace(valPair.first.getDest());
+					auto drawLocation = eqx::Rectangle<double>(
+						location.x,
+						location.y,
+						c_Scale,
+						c_Scale);
+					s_MoveEntities.emplace_back(
+						pul::Entity(s_FrameTexture, drawLocation, 0.0));
+					s_MoveEntities.back().setColor({ 0, 255, 0 });
+				});
 		}
 	}
 	else if (e.type == SDL_MOUSEBUTTONUP)
 	{
-		if (e.button.button == SDL_BUTTON_LEFT)
+		if (e.button.button == SDL_BUTTON_LEFT &&
+			s_HeldPiece != nullptr)
 		{
-			auto returnLocation = boardToWindowSpace(windowToBoardSpace(
+			auto moveLocation = boardToWindowSpace(windowToBoardSpace(
 				pul::Mouse::getLeftClickDownLocation()));
-			s_HeldPiece->setTarget(returnLocation);
+			auto validMove = false;
+			for (const auto& val : s_MoveEntities)
+			{
+				if (eqx::intersect(val.getDrawBox(),
+					pul::Mouse::getLeftClickUpLocation()))
+				{
+					moveLocation = boardToWindowSpace(windowToBoardSpace(
+						pul::Mouse::getLeftClickUpLocation()));
+					validMove = true;
+				}
+			}
+			s_HeldPiece->setTarget(moveLocation);
 			s_HeldPiece->setRotationTarget(0.0);
 			s_HeldPiece = nullptr;
+			s_MoveEntities.clear();
+			if (validMove)
+			{
+				auto move = Move(
+					windowToBoardSpace(pul::Mouse::getLeftClickDownLocation()),
+					windowToBoardSpace(pul::Mouse::getLeftClickUpLocation()),
+					Move::Type::None);
+				auto index = coordToIndex(move.getSource());
+				setBoard(s_Moves.at(index).at(move));
+			}
+			
 		}
 	}
 }
@@ -190,13 +226,13 @@ void ChessRenderer::update(double dt)
 	}
 	else if (s_HeldPiece == nullptr)
 	{
-		s_Frame.setLocation({ -c_Scale, -c_Scale });
+		s_Frame.setLocation(eqx::Point<double>(-c_Scale, -c_Scale));
 	}
 
 	if (s_HeldPiece != nullptr)
 	{
 		auto trackLocation = pul::Mouse::getCurrentLocation() -
-			eqx::Point<double>({ c_Scale / 2.0, c_Scale / 2.0 });
+			eqx::Point<double>(c_Scale / 2.0, c_Scale / 2.0);
 		s_HeldPiece->setTarget(trackLocation);
 		if (!s_HeldPiece->targetReached())
 		{
@@ -231,5 +267,16 @@ void ChessRenderer::render()
 			valPair.second.render();
 		});
 
+	std::ranges::for_each(s_MoveEntities,
+		[](const auto& val)
+		{
+			val.render();
+		});
+
 	s_Frame.render();
+
+	if (s_HeldPiece != nullptr)
+	{
+		s_HeldPiece->render();
+	}
 }

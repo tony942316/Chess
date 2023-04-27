@@ -200,14 +200,7 @@ namespace eqx
 	template <eqx::unsignedInteger T>
 	[[nodiscard]] bool constexpr willOverflowSubtraction(T x, T y) noexcept
 	{
-		if (y > x)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+		return y > x;
 	}
 
 	/**

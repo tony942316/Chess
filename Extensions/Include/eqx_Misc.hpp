@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -37,8 +38,15 @@
  * @param expr Expression To Be Checked
  * @param msg Message To Print To std::cerr
  */
-void eqx_debugOnly_runtimeAssert(bool expr, 
-	std::string_view msg = "") noexcept;
+inline void eqx_debugOnly_runtimeAssert(bool expr,
+	std::string_view msg = "") noexcept
+{
+	if (!expr)
+	{
+		std::cerr << msg << std::endl;
+		std::abort();
+	}
+}
 
 #endif
 
@@ -124,7 +132,7 @@ namespace eqx
 	 */
 	template <typename T>
 	concept constCollection = !eqx::stringType<T> &&
-		requires(const T & t)
+		requires(const T& t)
 		{
 			std::ranges::cbegin(t);
 			std::ranges::cend(t);
@@ -138,7 +146,10 @@ namespace eqx
 	 * 
 	 * @returns Value Converted To std::string
 	 */
-	std::string toString(const char* cstring);
+	[[nodiscard]] inline std::string toString(const char* cstring)
+	{
+		return std::string(cstring);
+	}
 
 	/**
 	 * @brief Convert A Value To A std::string
@@ -148,7 +159,7 @@ namespace eqx
 	 * @returns Value Converted To std::string
 	 */
 	template <eqx::stringable T>
-	std::string toString(const T& val)
+	[[nodiscard]] inline std::string toString(const T& val)
 	{
 		return std::to_string(val);
 	}
@@ -161,7 +172,7 @@ namespace eqx
 	 * @returns Value Converted To std::string
 	 */
 	template <eqx::stringType T>
-	std::string toString(const T& val)
+	[[nodiscard]] inline std::string toString(const T& val)
 	{
 		return std::string(val);
 	}
@@ -175,7 +186,7 @@ namespace eqx
 	 * @returns Pair Converted To std::string
 	 */
 	template <typename T, typename U>
-	std::string toString(const std::pair<T, U>& val)
+	[[nodiscard]] inline std::string toString(const std::pair<T, U>& val)
 	{
 		return std::string("(" + eqx::toString(val.first) +
 			", " + eqx::toString(val.second) + ")");
@@ -190,7 +201,7 @@ namespace eqx
 	 * @returns Collection Converted To std::string
 	 */
 	template <eqx::constCollection T>
-	std::string toString(const T& val)
+	[[nodiscard]] inline std::string toString(const T& val)
 	{
 		auto result = std::string("");
 		result += "{ ";
@@ -254,7 +265,14 @@ namespace eqx
 	 * @param expr Expression To Be Checked
 	 * @param msg Message To Print To std::cerr
 	 */
-	void runtimeAssert(bool expr, std::string_view msg = "") noexcept;
+	inline void runtimeAssert(bool expr, std::string_view msg = "") noexcept
+	{
+		if (!expr)
+		{
+			std::cerr << msg << std::endl;
+			std::abort();
+		}
+	}
 
 	/**
 	 * @brief "Zip" Two Collections Together In The Form Of
@@ -266,7 +284,7 @@ namespace eqx
 	 * @returns std::vector<std::pair<C1 Held Value, C2 Held Value>>
 	 */
 	template <eqx::constCollection C1, eqx::constCollection C2>
-	[[nodiscard]] auto zip(const C1& x, const C2& y)
+	[[nodiscard]] inline auto zip(const C1& x, const C2& y)
 	{
 		eqx::runtimeAssert(std::ranges::size(x) == std::ranges::size(y),
 			"eqx::zip std::ranges::size(x) != std::ranges::size(y)!");

@@ -15,6 +15,7 @@ public:
 		Pawn,
 		None
 	};
+
 	enum class Color
 	{
 		White,
@@ -22,48 +23,62 @@ public:
 		None
 	};
 
-	Piece();
-	Piece(Type type, Color color);
+	explicit constexpr Piece() noexcept;
+	explicit constexpr Piece(Type type, Color color) noexcept;
 
-	bool operator== (const Piece& other) const;
+	[[nodiscard]] constexpr bool
+		operator== (const Piece& other) const noexcept;
 
-	[[nodiscard]] Type getType() const;
-	[[nodiscard]] Color getColor() const;
+	[[nodiscard]] constexpr Type getType() const noexcept;
+	[[nodiscard]] constexpr Color getColor() const noexcept;
 
 private:
 	Type m_Type;
 	Color m_Color;
 };
 
-namespace std
+[[nodiscard]] constexpr Piece::Color operator! (Piece::Color color) noexcept;
+
+template<>
+struct std::hash<Piece>
 {
-	template<>
-	struct hash<Piece>
+	[[nodiscard]] std::size_t operator()(const Piece& piece) const noexcept
 	{
-		size_t operator()(const Piece& piece) const
-		{
-			return hash<int>()(static_cast<int>(piece.getColor())) ^
-				hash<int>()(static_cast<int>(piece.getType()));
-		}
-	};
-}
+		return std::hash<Piece::Type>()(piece.getType()) ^
+			std::hash<Piece::Color>()(piece.getColor());
+	}
+};
+
+#include "DefHeaders/PieceDef.hpp"
 
 namespace Pieces::White
 {
-	extern Piece Rook;
-	extern Piece Knight;
-	extern Piece Bishop;
-	extern Piece Queen;
-	extern Piece King;
-	extern Piece Pawn;
+	inline constexpr auto Rook =
+		Piece(Piece::Type::Rook, Piece::Color::White);
+	inline constexpr auto Knight =
+		Piece(Piece::Type::Knight, Piece::Color::White);
+	inline constexpr auto Bishop =
+		Piece(Piece::Type::Bishop, Piece::Color::White);
+	inline constexpr auto Queen =
+		Piece(Piece::Type::Queen, Piece::Color::White);
+	inline constexpr auto King =
+		Piece(Piece::Type::King, Piece::Color::White);
+	inline constexpr auto Pawn =
+		Piece(Piece::Type::Pawn, Piece::Color::White);
 }
 
 namespace Pieces::Black
 {
-	extern Piece Rook;
-	extern Piece Knight;
-	extern Piece Bishop;
-	extern Piece Queen;
-	extern Piece King;
-	extern Piece Pawn;
+	inline constexpr auto Rook =
+		Piece(Piece::Type::Rook, Piece::Color::Black);
+	inline constexpr auto Knight =
+		Piece(Piece::Type::Knight, Piece::Color::Black);
+	inline constexpr auto Bishop =
+		Piece(Piece::Type::Bishop, Piece::Color::Black);
+	inline constexpr auto Queen =
+		Piece(Piece::Type::Queen, Piece::Color::Black);
+	inline constexpr auto King =
+		Piece(Piece::Type::King, Piece::Color::Black);
+	inline constexpr auto Pawn =
+		Piece(Piece::Type::Pawn, Piece::Color::Black);
 }
